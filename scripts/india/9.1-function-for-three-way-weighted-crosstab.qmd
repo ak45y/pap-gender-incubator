@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+
+```{r}
+threeway_weighted_crosstabs <- function(data, svy_obj_list, pred_varlist) {
+  require(survey)
+  # first write a function to add variable labels
+  text_matrix <- function(dat, table_title) {
+  rbind(rep('', ncol(dat)),
+        c(table_title, rep('', ncol(dat)-1)), # title
+        rep('', ncol(dat)), # blank spacer row
+        names(dat), # column names
+        unname(sapply(dat, as.character))) # data
+  }
+  # Get levels of the dependent variable
+  x <- which(colnames(data) == depvar)
+  level_1 <- levels(data[[x]])[1]
+  level_2 <- levels(data[[x]])[2]
+  ## Loop for the three way table
+  df_col <- NULL
+  # Start a loop for all survey objects by State
+  for (svy in svy_obj_list) { 
+  # Counter to reset the dataset for individual states
+  df_rows <- NULL
+    for (i in pred_varlist) {
+  # Create a single crosstab for  one variable by Sex
+    a1 <- svytable(~get(i) + get(depvar), design = svy) %>% 
+    prop.table(2) %>% 
+    magrittr::multiply_by(100) %>% 
+    round(digits = 2) %>% 
+    as.data.frame.array() %>% 
+    mutate(Categories = rownames(.)) %>% 
+    mutate(P1 = .[[1]]) %>% 
+    mutate(P2 = .[[2]]) %>% 
+    mutate(N1 = with(svy$variables, table(get(i), get(depvar)))[,1]) %>% 
+    mutate(N2 = with(svy$variables, table(get(i), get(depvar)))[,2])  %>% 
+    select(Categories, !!as.name(paste0(level_1, " (N)")) := N1, 
+           !!as.name(paste0(level_1, " (%)")) := P1,
+           !!as.name(paste0(level_2, " (N)")) := N2, 
+           !!as.name(paste0(level_2, " (%)")) := P2)
+    
+  # call the text matrix function to add a label for each variable  
+  temp <- text_matrix(a1, label(data[[i]]))
+  # Bind all variables within a section 
+  df_rows <- rbind(df_rows, temp)
+    }
+  df_col <- cbind(df_col, df_rows)
+  }  
+df_col
+}
+
+# select(Categories, paste0(level_1, " (N)") = N1, "Female (%)" = female, "Male (N)", "Male (%)" = male)
+```
+
+
+```{r}
+depvar <- "b4_01"
+df_test <- threeway_weighted_crosstabs(data = df_Nigeria_IR_ana, 
+                                       svy_obj_list = svy_obj_list, 
+                                       pred_varlist = food_list)
+View(df_test)
+# write.csv(df_test, "./outputs/scratch.csv")
+
+```
+
+```{r}
+text_matrix <- function(dat, table_title) {
+  rbind(rep('', ncol(dat)),
+        c(table_title, rep('', ncol(dat)-1)), # title
+        rep('', ncol(dat)), # blank spacer row
+        names(dat), # column names
+        unname(sapply(dat, as.character)))
+}
+```
+
+```{r}
+
+```
+
+
+```{r - for two-way cross tab}
+df_rows <- NULL
+
+for (i in food_list) {
+  # Create a single crosstab for  one variable by Sex
+    a1 <- svytable(~get(i) + b4_01, design = sdesign_tot) %>% 
+    prop.table(2) %>% 
+    magrittr::multiply_by(100) %>% 
+    round(digits = 2) %>% 
+    as.data.frame.array() %>% 
+    mutate(Categories = rownames(.)) %>% 
+    mutate(P1 = .[[1]], P2 = .[[2]]) %>% 
+    mutate(N1 = with(sdesign_tot$variables, table(get(i), b4_01))[,1]) %>% 
+    mutate(N2 = with(sdesign_tot$variables, table(get(i), b4_01))[,2])  %>% 
+    select(Categories, !!as.name(paste0(level_1, " (N)")) := N1, 
+           !!as.name(paste0(level_1, " (%)")) := P1,
+           !!as.name(paste0(level_2, " (N)")) := N2, 
+           !!as.name(paste0(level_2, " (%)")) := P2)
+    
+  # call the text matrix function to add a label for each variable  
+  temp <- text_matrix(a1, label(df_Nigeria_IR_ana[[i]]))
+  # Bind all variables within a section 
+  df_rows <- rbind(df_rows, temp)
+}
+View(df_rows)
+```
+
+
+```{r}
+test <- function(data, depvar) {
+  x <- which(colnames(data) == as.character(substitute(depvar)))
+  level_1 <- levels(data[[x]])[1]
+  level_2 <- levels(data[[x]])[2]
+  print(paste0(level_1, " (N)"))
+}
+test(df_Nigeria_IR_ana, b4_01)
+```
+
+```{r}
+
+
+x <- which(colnames(df_Nigeria_IR_ana) == "b4_01")
+level <- levels(df_Nigeria_IR_ana[[x]])
+  
+```
+
+```{r}
+f <- function() {
+  x <- 1
+  y <- 2
+  c(x, y)
+}
+f()
+rm(f)
+```
+
+```{r}
+x <- 1
+h <- function() {
+  y <- 2
+  i <- function() {
+    z <- 3
+    c(x, y, z)
+  }
+  i()
+}
+h()
+rm(x, h)
+```
+

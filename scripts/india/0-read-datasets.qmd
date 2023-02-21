@@ -1,0 +1,52 @@
+---
+title: "read-datasets"
+format: html
+editor: visual
+---
+
+# load-packages
+
+```{r warning=FALSE, message=FALSE}
+library(foreign)
+library(haven)
+library(tidyverse)
+library(summarytools)
+```
+
+# Read India data
+
+# read data using the haven package
+
+```{r}
+df_incu_india_raw <- read_sav("./data/gender-incubator-india-raw-data.sav")
+df_incu_india_raw <- as_factor(df_incu_india_raw)
+```
+
+# create data dictionary
+
+## Get a dataframe of variable labels using the foreign package
+
+```{r, warning = FALSE}
+## Read data
+df <- read.spss("C:/Z/geh/Projects/Gender Incubator/Data and Reports/India Data/gender-incubator-india-raw-data.sav", to.data.frame = TRUE)
+## Get labels
+# label_list <- as.data.table(attributes(df)$variable.labels)
+
+```
+
+## Create a dataframe with variable name and label in R
+
+```{r}
+df_names_labels <- data.frame(
+  v_names = names(df),
+  v_label = attributes(df)$variable.labels
+)
+View(df_names_labels)
+```
+
+## save to csv
+
+```{r}
+write.csv(df_names_labels, "./outputs/variable_names_and_labels.csv")
+writexl::write_xlsx(df_names_labels, "./outputs/variable_names_and_labels.xlsx")
+```

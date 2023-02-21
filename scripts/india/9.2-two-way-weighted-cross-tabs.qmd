@@ -1,0 +1,209 @@
+---
+title: "two-way-weighted-cross-tabs"
+format: html
+editor: visual
+---
+
+```{r}
+twoway_wtd_crosstabs <- function(data, svy_obj, pred_varlist) {
+  require(survey)
+  require(stringr)
+  # function to add labels
+  text_matrix <- function(dat, table_title) {
+  rbind(rep('', ncol(dat)),
+        c(table_title, rep('', ncol(dat)-1)), # title
+        rep('', ncol(dat)), # blank spacer row
+        names(dat), # column names
+        unname(sapply(dat, as.character)))
+  }
+  # Get levels of the dependent variable
+  x <- which(colnames(data) == depvar)
+  level_1 <- str_to_sentence(levels(data[[x]])[1])
+  level_2 <- str_to_sentence(levels(data[[x]])[2])
+  
+  # Loop to create crosstabs
+  df_rows <- NULL
+  
+  for (i in pred_varlist) {
+  # Create a single crosstab for  one variable by Sex
+    a1 <- svytable(~get(i) + get(depvar), design = svy_obj) %>% 
+    prop.table(2) %>% 
+    magrittr::multiply_by(100) %>% 
+    round(digits = 2) %>% 
+    as.data.frame.array() %>% 
+    mutate(Categories = rownames(.)) %>% 
+    mutate(P1 = .[[1]], P2 = .[[2]]) %>% 
+    mutate(N1 = with(svy_obj$variables, table(get(i), get(depvar)))[,1]) %>% 
+    mutate(N2 = with(svy_obj$variables, table(get(i), get(depvar)))[,2])  %>% 
+    select(Categories, !!as.name(paste0(level_1, " (N)")) := N1, 
+           !!as.name(paste0(level_1, " (%)")) := P1,
+           !!as.name(paste0(level_2, " (N)")) := N2, 
+           !!as.name(paste0(level_2, " (%)")) := P2)
+    
+  # call the text matrix function to add a label for each variable  
+  temp <- text_matrix(a1, label(data[[i]]))
+  # Bind all variables within a section 
+  df_rows <- rbind(df_rows, temp)
+  }
+  df_rows
+}
+
+```
+
+```{r}
+depvar <- "b4_01"
+df_scratch <- twoway_wtd_crosstabs(data = df_Nigeria_IR_ana, svy_obj = sdesign_tot, 
+                     pred_varlist = food_list)
+
+View(df_scratch)
+```
+
+```{r}
+####### This works
+funk1 <- function(data, pred_varlist) {
+  df <- NULL
+  for (j in pred_varlist) {
+    df_cur <- as.data.frame(with(data, table(get(j), b4_01)))
+    df <- rbind(df, df_cur)
+  }
+df
+  }
+
+df <- funk1(df_Nigeria_IR_ana, food_list)
+View(df)
+```
+
+
+```{r}
+####### This works
+funk1 <- function(data, pred_varlist) {
+  df <- NULL
+  for (j in pred_varlist) {
+    df_cur <- as.data.frame(with(data, table(get(j), b4_01)))
+    df <- rbind(df, df_cur)
+  }
+df
+  }
+
+df1 <- funk1(df_Nigeria_IR_ana, food_list)
+View(df1)
+```
+
+```{r}
+## This does not work
+funk2 <- function(data, pred_varlist) {
+  df <- NULL
+  for (j in pred_varlist) {
+    df_cur <- as.data.frame.array(svytable(~get(j) + b4_01, design = sdesign_tot))
+    df <- rbind(df, df_cur)
+  }
+df
+  }
+
+df <- funk2(df_Nigeria_IR_ana, food_list)
+View(df)
+```
+
+```{r}
+####### ???
+funk3 <- function(data, pred_varlist) {
+  df <- NULL
+  for (j in pred_varlist) {
+    df_cur <- as.data.frame(with(data, ctable(get(j), b4_01, weights = wt, 
+                                              prop = "c", useNA = "no", round.digits = 2)))
+    df <- rbind(df, df_cur)
+  }
+df
+  }
+
+df3 <- funk3(df_Nigeria_IR_ana, food_list)
+
+View(df3)
+```
+
+
+```{r}
+as.data.frame.array(svytable(~v414e + b4_01, design = sdesign_tot))
+
+with(df_Nigeria_IR_ana, ctable(v414e, b4_01, weights = wt, prop = "c", useNA = "no", round.digits = 2))
+
+
+```
+
+
+```{r}
+## this small example is where all the problem is 
+library(survey)
+
+funky <- function(data, svy_obj, pred_varlist) {
+  for (j in pred_varlist) {
+  df <- svytable(~get(j) + get(depvar), design = svy_obj)
+  }
+  df
+}
+
+depvar <- "b4_01"
+i <- "v414s"
+funky(data = df_Nigeria_IR_ana, 
+                 svy_obj = sdesign_tot, 
+                 pred_varlist = food_list)
+
+# View(df_test)
+```
+
+```{r}
+rm(list = ls())
+rm(list=setdiff(ls(), c("df_Nigeria_IR_ana", "sdesign_tot", "food_list", "svy")))
+ls()
+```
+
+```{r}
+a <- ls()
+class(i)
+rm(i)
+```
+
+```{r}
+a1 <- ls()
+setdiff(a1, a)
+```
+
+```{r}
+## this small example works
+funky <- function(data, svy_obj, depvar, pred_varlist) {
+  # as.name(depvar)
+  # require(summarytools)
+  # a <- as.character(as.list(match.call()[-1])$depvar)
+  svytable(~v414e + get(depvar), design = svy_obj)
+}
+# depvar <- "b4_01"
+funky(data = df_Nigeria_IR_ana, svy_obj = sdesign_tot,  depvar = b4_01, pred_varlist = food_list)
+```
+
+```{r}
+funktown <- function(data, var) {
+  require(summarytools)
+  with(data, freq(var))
+}
+funktown(df_Nigeria_IR_ana, var = "b4_01")
+```
+
+```{r}
+x <- 1
+h <- function() {
+  y <- 2
+  i <- function() {
+    z <- 3
+    c(x, y, z)
+  }
+  i()
+}
+h()
+rm(x, h)
+```
+
+
+```{r}
+library(summarytools)
+with(df_Nigeria_IR_ana, freq(b4_01))
+```
